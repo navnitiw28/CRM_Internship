@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - '5000:5000'
+      - '5173:5173'
+    environment:
+      DATABASE_URL: file:./dev.db
+      JWT_SECRET: dev-secret
+      FRONTEND_URL: http://localhost:5173

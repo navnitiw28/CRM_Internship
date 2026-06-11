@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  email                String   @unique
+  password             String
+  role                 String   @default("EMPLOYEE")
+  verified             Boolean  @default(false)
+  refreshToken         String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  emailVerifyToken     String?
+  createdAt            DateTime @default(now())
+  leaveRequests        LeaveRequest[]
+  leaveBalance         LeaveBalance?
+}
+
+model LeaveBalance {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id])
+  annualDays   Int      @default(20)
+  usedDays     Int      @default(0)
+  remainingDays Int     @default(20)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model LeaveRequest {
+  id            Int                 @id @default(autoincrement())
+  userId        Int
+  user          User                @relation(fields: [userId], references: [id])
+  leaveType     String
+  startDate     DateTime
+  endDate       DateTime
+  days          Int
+  reason        String
+  status        String              @default("PENDING")
+  managerComment String?
+  hrComment     String?
+  managerId     Int?
+  hrId          Int?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  approvals     LeaveApprovalLog[]
+}
+
+model LeaveApprovalLog {
+  id              Int          @id @default(autoincrement())
+  leaveRequestId  Int
+  leaveRequest    LeaveRequest @relation(fields: [leaveRequestId], references: [id])
+  actorId         Int
+  actorName       String
+  action          String
+  comment         String?
+  createdAt       DateTime     @default(now())
+}
+
+model Asset {
+  id            Int      @id @default(autoincrement())
+  name          String
+  type          String
+  serialNumber  String   @unique
+  status        String   @default("AVAILABLE")
+  assignedTo    String?
+  assignedBy    String?
+  assignedAt    DateTime?
+  returnedAt    DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  entity    String
+  entityId  Int?
+  action    String
+  actor     String?
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+}
+
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  employees Employee[]
+}
+
+model Skill {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
+  employees EmployeeSkill[]
+}
+
+model Employee {
+  id           Int              @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  email        String           @unique
+  phone        String
+  department   Department?      @relation(fields: [departmentId], references: [id])
+  departmentId Int?
+  profileImage String?
+  resumeFile   String?
+  documents    EmployeeDocument[]
+  skills       EmployeeSkill[]
+  createdAt    DateTime         @default(now())
+}
+
+model EmployeeDocument {
+  id         Int      @id @default(autoincrement())
+  filePath   String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId Int
+}
+
+model EmployeeSkill {
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId Int
+  skill      Skill    @relation(fields: [skillId], references: [id])
+  skillId    Int
+
+  @@id([employeeId, skillId])
+}

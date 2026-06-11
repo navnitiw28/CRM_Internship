@@ -1,0 +1,8 @@
+node_modules/
+packages-lock.json
+npm-debug.log*
+.DS_Store
+/dist
+/frontend/node_modules
+/backend/node_modules
+/frontend/dist
