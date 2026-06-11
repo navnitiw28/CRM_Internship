@@ -564,11 +564,11 @@ app.patch("/api/leave-requests/:id/decision", requireAuth, async (req, res) => {
 });
 app.get("/api/leave-analytics", requireAuth, async (_req, res) => {
     const counts = await prisma.leaveRequest.groupBy({ by: ["status"], _count: { status: true } });
-    const recent = await prisma.$queryRawUnsafe(`SELECT lr.id, u.name AS employeeName, lr.leaveType, lr.status, lr.days
+    const recent = (await prisma.$queryRawUnsafe(`SELECT lr.id, u.name AS employeeName, lr.leaveType, lr.status, lr.days
     FROM LeaveRequest lr
     INNER JOIN User u ON lr.userId = u.id
     ORDER BY lr.createdAt DESC
-    LIMIT 8`);
+    LIMIT 8`));
     return res.json({
         counts,
         recent,
