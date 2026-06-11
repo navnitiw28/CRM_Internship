@@ -1,7 +1,19 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { mockAssets, mockAuditLogs, mockDashboardStats, mockEmployees, mockLeaveRequests, mockNotifications, mockReports, mockUser } from "./data/mockData";
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:5000";
+const getApiBase = () => {
+  const configured = (import.meta as any).env?.VITE_API_URL;
+  if (configured) return configured;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return window.location.origin;
+    }
+  }
+  return "http://localhost:5000";
+};
+
+const API_BASE = getApiBase();
 
 // --- TEXT TO SPEECH OPERATIONAL ENGINE ---
 const speakText = (text: string) => {

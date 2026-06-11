@@ -1,4 +1,16 @@
-export const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:5000";
+const getApiBase = () => {
+  const configured = (import.meta as any).env?.VITE_API_URL;
+  if (configured) return configured;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return window.location.origin;
+    }
+  }
+  return "http://localhost:5000";
+};
+
+export const API_URL = getApiBase();
 
 interface ApiOptions extends Omit<RequestInit, "body"> {
   body?: BodyInit | Record<string, unknown>;

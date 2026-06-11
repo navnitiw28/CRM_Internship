@@ -24,6 +24,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "secret";
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const uploadDirectory = path_1.default.join(__dirname, "..", "uploads");
+const frontendBuildDirectory = path_1.default.resolve(__dirname, "..", "..", "frontend", "dist");
 if (!fs_1.default.existsSync(uploadDirectory)) {
     fs_1.default.mkdirSync(uploadDirectory, { recursive: true });
 }
@@ -592,6 +593,12 @@ app.get("/api/docs", (_req, res) => {
         ],
     });
 });
+if (fs_1.default.existsSync(frontendBuildDirectory)) {
+    app.use(express_1.default.static(frontendBuildDirectory));
+    app.get(/^(?!\/api\/|\/uploads\/).*/, (_req, res) => {
+        res.sendFile(path_1.default.join(frontendBuildDirectory, "index.html"));
+    });
+}
 app.use(errorHandler_1.errorHandler);
 async function bootstrap() {
     await (0, seedDemoData_1.seedDemoData)();

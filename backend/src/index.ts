@@ -23,6 +23,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "secret";
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const uploadDirectory = path.join(__dirname, "..", "uploads");
+const frontendBuildDirectory = path.resolve(__dirname, "..", "..", "frontend", "dist");
 
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory, { recursive: true });
@@ -683,6 +684,13 @@ app.get("/api/docs", (_req, res) => {
     ],
   });
 });
+
+if (fs.existsSync(frontendBuildDirectory)) {
+  app.use(express.static(frontendBuildDirectory));
+  app.get(/^(?!\/api\/|\/uploads\/).*/, (_req, res) => {
+    res.sendFile(path.join(frontendBuildDirectory, "index.html"));
+  });
+}
 
 app.use(errorHandler);
 
