@@ -10,6 +10,7 @@ import { PrismaClient } from "@prisma/client";
 import assetController from "./controllers/assetController";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./utils/logger";
+import { seedDemoData } from "./utils/seedDemoData";
 
 type Role = "USER" | "ADMIN" | "HR" | "MANAGER" | "EMPLOYEE";
 
@@ -33,8 +34,20 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+const allowedOrigins = [FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
 
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use("/uploads", express.static(uploadDirectory));
 app.use("/api/v1", assetController);
@@ -114,8 +127,9 @@ function getLeaveDayCount(startDate: string, endDate: string) {
 }
 
 app.post("/api/auth/register", async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: "Name, email, and password are required." });
+  const { name, firstName, lastName, email, password } = req.body;
+  const resolvedName = name || [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (!resolvedName || !email || !password) return res.status(400).json({ error: "Name, email, and password are required." });
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return res.status(409).json({ error: "Email already exists." });
@@ -125,7 +139,7 @@ app.post("/api/auth/register", async (req, res) => {
 
   await prisma.user.create({
     data: {
-      name,
+      name: resolvedName,
       email,
       password: hashed,
       verified: true,
@@ -666,6 +680,11 @@ app.get("/api/docs", (_req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`Backend running on http://localhost:${PORT}`);
-});
+async function bootstrap() {
+  await seedDemoData();
+  app.listen(PORT, () => {
+    logger.info(`Backend running on http://localhost:${PORT}`);
+  });
+}
+
+void bootstrap();

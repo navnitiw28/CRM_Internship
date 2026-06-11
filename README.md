@@ -32,6 +32,19 @@ This repository contains a full-stack authentication and authorization applicati
    npm run dev
    ```
 
+## Local PostgreSQL with Docker
+
+```bash
+docker compose up -d postgres
+```
+
+## Render deployment
+
+Render deployment is preconfigured via `render.yaml`.
+- The backend service uses the PostgreSQL database from Render.
+- The frontend service publishes the Vite build output.
+- Update the frontend URL in `render.yaml` after the first deployment.
+
 ## API
 - `POST /api/auth/register`
 - `POST /api/auth/login`

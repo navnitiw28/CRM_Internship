@@ -15,6 +15,7 @@ const client_1 = require("@prisma/client");
 const assetController_1 = __importDefault(require("./controllers/assetController"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const logger_1 = require("./utils/logger");
+const seedDemoData_1 = require("./utils/seedDemoData");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
@@ -31,7 +32,17 @@ const storage = multer_1.default.diskStorage({
     filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
 });
 const upload = (0, multer_1.default)({ storage });
-app.use((0, cors_1.default)({ origin: FRONTEND_URL, credentials: true }));
+const allowedOrigins = [FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
+app.use((0, cors_1.default)({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(null, false);
+    },
+    credentials: true,
+}));
 app.use(express_1.default.json());
 app.use("/uploads", express_1.default.static(uploadDirectory));
 app.use("/api/v1", assetController_1.default);
@@ -106,8 +117,9 @@ function getLeaveDayCount(startDate, endDate) {
     return difference;
 }
 app.post("/api/auth/register", async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password)
+    const { name, firstName, lastName, email, password } = req.body;
+    const resolvedName = name || [firstName, lastName].filter(Boolean).join(" ").trim();
+    if (!resolvedName || !email || !password)
         return res.status(400).json({ error: "Name, email, and password are required." });
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing)
@@ -116,7 +128,7 @@ app.post("/api/auth/register", async (req, res) => {
     const hashed = await bcryptjs_1.default.hash(password, 10);
     await prisma.user.create({
         data: {
-            name,
+            name: resolvedName,
             email,
             password: hashed,
             verified: true,
@@ -581,6 +593,10 @@ app.get("/api/docs", (_req, res) => {
     });
 });
 app.use(errorHandler_1.errorHandler);
-app.listen(PORT, () => {
-    logger_1.logger.info(`Backend running on http://localhost:${PORT}`);
-});
+async function bootstrap() {
+    await (0, seedDemoData_1.seedDemoData)();
+    app.listen(PORT, () => {
+        logger_1.logger.info(`Backend running on http://localhost:${PORT}`);
+    });
+}
+void bootstrap();

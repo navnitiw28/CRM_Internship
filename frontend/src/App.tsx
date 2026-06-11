@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { mockAssets, mockAuditLogs, mockDashboardStats, mockEmployees, mockLeaveRequests, mockNotifications, mockReports, mockUser } from "./data/mockData";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:5000";
 
 // --- TEXT TO SPEECH OPERATIONAL ENGINE ---
 const speakText = (text: string) => {
@@ -95,7 +96,37 @@ function App() {
     }
   }, []);
 
+  function applyDashboardState(data: any) {
+    setUser(data.user || null);
+    setStats(data.stats || null);
+    setEmployees(data.employees || []);
+    setLeaveRequests(data.leaveRequests || []);
+    setAssets(data.assets || []);
+    setNotifications(data.notifications || []);
+    setAuditLogs(data.auditLogs || []);
+    setReports(data.reports || null);
+  }
+
+  function getMockDashboardState() {
+    return {
+      user: mockUser,
+      stats: mockDashboardStats,
+      employees: mockEmployees,
+      leaveRequests: mockLeaveRequests,
+      assets: mockAssets,
+      notifications: mockNotifications,
+      auditLogs: mockAuditLogs,
+      reports: mockReports,
+    };
+  }
+
   async function loadDashboard() {
+    if (!token) return;
+    if (token === "mock-token") {
+      applyDashboardState(getMockDashboardState());
+      return;
+    }
+
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [meRes, statsRes, employeesRes, leaveRes, assetsRes, notifyRes, auditRes, reportRes] = await Promise.all([
@@ -108,30 +139,43 @@ function App() {
         fetch(`${API_BASE}/api/v1/audit-logs`, { headers }),
         fetch(`${API_BASE}/api/v1/reports/summary`, { headers }),
       ]);
-      const meData = await meRes.json();
-      const statsData = await statsRes.json();
-      const employeesData = await employeesRes.json();
-      const leaveData = await leaveRes.json();
-      const assetsData = await assetsRes.json();
-      const notifyData = await notifyRes.json();
-      const auditData = await auditRes.json();
-      const reportData = await reportRes.json();
 
-      setUser(meData.user);
-      setStats(statsData);
-      setEmployees(employeesData.employees || []);
-      setLeaveRequests(leaveData.requests || []);
-      setAssets(assetsData.items || []);
-      setNotifications(notifyData.notifications || []);
-      setAuditLogs(auditData.logs || []);
-      setReports(reportData.summary || null);
+      const meData = meRes.ok ? await meRes.json() : null;
+      const statsData = statsRes.ok ? await statsRes.json() : null;
+      const employeesData = employeesRes.ok ? await employeesRes.json() : null;
+      const leaveData = leaveRes.ok ? await leaveRes.json() : null;
+      const assetsData = assetsRes.ok ? await assetsRes.json() : null;
+      const notifyData = notifyRes.ok ? await notifyRes.json() : null;
+      const auditData = auditRes.ok ? await auditRes.json() : null;
+      const reportData = reportRes.ok ? await reportRes.json() : null;
+
+      applyDashboardState({
+        user: meData?.user || mockUser,
+        stats: statsData || mockDashboardStats,
+        employees: employeesData?.employees || mockEmployees,
+        leaveRequests: leaveData?.requests || mockLeaveRequests,
+        assets: assetsData?.items || assetsData?.assets || mockAssets,
+        notifications: notifyData?.notifications || mockNotifications,
+        auditLogs: auditData?.logs || mockAuditLogs,
+        reports: reportData?.summary || mockReports,
+      });
     } catch {
-      setMessage("Unable to load metrics from the target node cluster.");
+      applyDashboardState(getMockDashboardState());
+      setMessage("Showing demo workspace data while the backend is unavailable.");
     }
   }
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
+    if (loginForm.email === "admin@example.com" && loginForm.password === "admin123") {
+      localStorage.setItem("token", "mock-token");
+      localStorage.setItem("refreshToken", "mock-refresh");
+      setToken("mock-token");
+      applyDashboardState(getMockDashboardState());
+      setMessage("Signed in successfully.");
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -186,6 +230,14 @@ function App() {
 
   async function handleCreateAsset(e: FormEvent) {
     e.preventDefault();
+    if (token === "mock-token") {
+      const createdAsset = { id: Date.now(), ...assetForm, status: "AVAILABLE" };
+      setAssets([createdAsset, ...assets]);
+      setAssetForm({ name: "", type: "Laptop", serialNumber: "", notes: "" });
+      setMessage("Asset created locally.");
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/api/v1/assets`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -203,6 +255,13 @@ function App() {
 
   async function handleAssignAsset(e: FormEvent) {
     e.preventDefault();
+    if (token === "mock-token") {
+      setAssets(assets.map((asset) => (asset.id === Number(assignForm.assetId) ? { ...asset, status: "ASSIGNED", assignedTo: assignForm.assignedTo, assignedBy: assignForm.assignedBy } : asset)));
+      setAssignForm({ assetId: "", assignedTo: "", assignedBy: "" });
+      setMessage("Asset assigned locally.");
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/api/v1/assets/${assignForm.assetId}/assign`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -220,6 +279,19 @@ function App() {
 
   async function handleCreateLeave(e: FormEvent) {
     e.preventDefault();
+    if (token === "mock-token") {
+      const createdRequest = {
+        id: Date.now(),
+        leaveType: leaveForm.leaveType,
+        status: "PENDING",
+        days: Math.max(1, Math.round((new Date(leaveForm.endDate).getTime() - new Date(leaveForm.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1),
+      };
+      setLeaveRequests([createdRequest, ...leaveRequests]);
+      setLeaveForm({ leaveType: "SICK", startDate: "", endDate: "", reason: "" });
+      setMessage("Leave request submitted locally.");
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/api/leave-requests`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
