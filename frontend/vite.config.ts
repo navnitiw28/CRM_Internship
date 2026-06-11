@@ -6,4 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  preview: {
+    host: "0.0.0.0",
+    port: 10000,
+    allowedHosts: ["crm-internship-8.onrender.com", "localhost", "127.0.0.1"],
+  },
 });
