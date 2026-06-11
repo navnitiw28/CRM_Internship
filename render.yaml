@@ -4,8 +4,8 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: npm install --workspace backend && npm run build --workspace backend
-    startCommand: npm run start --workspace backend
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -27,7 +27,7 @@ services:
     env: static
     region: oregon
     plan: free
-    buildCommand: npm install --workspace frontend && npm run build --workspace frontend
+    buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
