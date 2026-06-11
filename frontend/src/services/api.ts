@@ -3,11 +3,11 @@ const getApiBase = () => {
   if (configured) return configured;
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
-    if (host !== "localhost" && host !== "127.0.0.1") {
-      return window.location.origin;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://localhost:5000";
     }
   }
-  return "http://localhost:5000";
+  return "https://crm-internship-6.onrender.com";
 };
 
 export const API_URL = getApiBase();
